@@ -131,7 +131,7 @@ int do_lottery()
  				}
  			}
  			if (old_priority != rmp->priority) {
-                schedule_process_local(rmp);//in MINIX 3.21 schedule_process_local replace schedule_process
+                schedule_process_local(rmp);//if the priority is changed, then we need to call schedule_process to update the priority
  			}
  		}
  	}
@@ -258,7 +258,7 @@ int do_start_scheduling(message *m_ptr)
 	/* Populate process slot */
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
-	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;   //attention, this line is not the same as 3.17, need to test
+	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;   //3.21 has this line, attention, this line is not the same as 3.17, it replace the function of rmp->nice
 	rmp->ticketsNum   = 5; //no idea why it is 5
 
     if (rmp->max_priority >= NR_SCHED_QUEUES) {
@@ -305,7 +305,7 @@ int do_start_scheduling(message *m_ptr)
 			return rv;
 
 		//rmp->priority = schedproc[parent_nr_n].priority;
-        //set priority of current process to be the middle of all priority queues
+        //set default priority of current process to be the middle of all new added priority queues
         rmp->priority = USER_Q;
 
 		rmp->time_slice = schedproc[parent_nr_n].time_slice;
