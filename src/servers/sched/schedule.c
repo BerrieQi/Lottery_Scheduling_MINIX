@@ -179,6 +179,7 @@ int do_noquantum(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
+    //add else condition
  	if (PROCESS_IN_USER_Q(rmp)) {
  		rmp->priority = USER_Q;
  	} else if (rmp->priority < MAX_USER_Q - 1)
@@ -223,6 +224,7 @@ int do_stop_scheduling(message *m_ptr)
 	rmp->flags = 0; /*&= ~IN_USE;*/
 
     //call do_lottery after each scheduling
+    //why return do_lottery result, and why do_loterry return flag when success
     if ((rv = do_lottery()) != OK) {
         return rv;
     }
