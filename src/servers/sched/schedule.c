@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <minix/com.h>
 #include <machine/archtypes.h>
-//maybe include for srand
+//no idea include for what
 #include <minix/syslib.h>
 //the .h for sef_receive_status
 #include <minix/sef.h>
@@ -114,7 +114,7 @@ int do_lottery()
  		}
  	}
 
- 	lucky = nTickets ? rand() % nTickets : 0;
+ 	lucky = nTickets ? random() % nTickets : 0;
  	for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
  		if ((rmp->flags & IN_USE) && PROCESS_IN_USER_Q(rmp) &&
  				USER_Q == rmp->priority) {
@@ -206,7 +206,7 @@ int do_noquantum(message *m_ptr)
 int do_stop_scheduling(message *m_ptr)
 {
 	register struct schedproc *rmp;
-	int proc_nr_n;
+	int proc_nr_n,rv;
 
 	/* check who can send you requests */
 	if (!accept_message(m_ptr))
@@ -459,7 +459,7 @@ void init_scheduling(void)
 
     //add the following
     read_tsc_64(&r);
-    srand((unsigned)r.lo);
+    srandom();
 }
 
 /*===========================================================================*
