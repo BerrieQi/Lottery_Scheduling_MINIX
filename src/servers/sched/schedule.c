@@ -305,10 +305,11 @@ int do_start_scheduling(message *m_ptr)
 				&parent_nr_n)) != OK)
 			return rv;
 
-
-		//rmp->priority = schedproc[parent_nr_n].priority;
+        if (is_system_proc(rmp))
+		    rmp->priority = schedproc[parent_nr_n].priority;
         //set default priority of current process to be the middle of all new added priority queues
-        rmp->priority = USER_Q;
+            else
+            rmp->priority = USER_Q;
 
 		rmp->time_slice = schedproc[parent_nr_n].time_slice;
 		break;
