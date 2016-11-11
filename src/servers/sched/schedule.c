@@ -14,8 +14,9 @@
 #include <machine/archtypes.h>
 //maybe include for srand
 #include <minix/syslib.h>
-//unsure if necessary to include this .h
-#include <minix/config.h>
+//the .h for sef_receive_status
+#include <minix/sef.h>
+
 
 #include "kernel/proc.h" /* for queue constants */
 
@@ -259,7 +260,7 @@ int do_start_scheduling(message *m_ptr)
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;   //3.21 has this line, attention, this line is not the same as 3.17, it replace the function of rmp->nice
-	rmp->ticketsNum   = 5; //no idea why it is 5
+	rmp->ticketsNum   = rmp->max_priority; //initial tickets a proc has, we set it to be the number of priority
 
     if (rmp->max_priority >= NR_SCHED_QUEUES) {
 		return EINVAL;
@@ -303,6 +304,7 @@ int do_start_scheduling(message *m_ptr)
 		if ((rv = sched_isokendpt(m_ptr->SCHEDULING_PARENT,
 				&parent_nr_n)) != OK)
 			return rv;
+
 
 		//rmp->priority = schedproc[parent_nr_n].priority;
         //set default priority of current process to be the middle of all new added priority queues
@@ -360,8 +362,7 @@ int do_nice(message *m_ptr)
 	int rv;
 	int proc_nr_n;
 	unsigned new_q, old_q, old_max_q;
-    //add old_ticketNum, but 3.21 actually do not have old_nice
-    int old_nice, old_ticketsNum;
+    int old_ticketsNum;
 
 	/* check who can send you requests */
 	if (!accept_message(m_ptr))
@@ -385,8 +386,6 @@ int do_nice(message *m_ptr)
 	old_q     = rmp->priority;
 	old_max_q = rmp->max_priority;
 
-    //unsure about the following rmp->nice
-    old_nice  = rmp->nice;
     old_ticketsNum = rmp->ticketsNum;
 
 	/* Update the proc entry and reschedule the process */
@@ -399,8 +398,6 @@ int do_nice(message *m_ptr)
 		 * back the changes to proc struct */
 		rmp->priority     = old_q;
 		rmp->max_priority = old_max_q;
-        //the following line does not exist in 3.21
-        rmp->nice         = old_nice;
         //add a line
         rmp->ticketsNum   = old_ticketsNum;
 	}
