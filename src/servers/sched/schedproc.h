@@ -34,6 +34,7 @@ EXTERN struct schedproc {
 								process allowed
 								to run on */
 	unsigned ticketsNum;	//indicate the process tickets number
+	long cputime;			//cpu captured time
 } schedproc[NR_PROCS];
 
 /* Flag values */
