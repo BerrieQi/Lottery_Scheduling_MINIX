@@ -16,6 +16,8 @@
 #include <minix/syslib.h>
 //the .h for sef_receive_status
 #include <minix/sef.h>
+//the .h for PRIO_MAX & PRIO_MIN 
+#include <sys/resource.h>
 
 
 #include "kernel/proc.h" /* for queue constants */
@@ -151,18 +153,7 @@ int do_lottery()
  	return nTickets ? flag : OK;
 }
 
- /*===========================================================================*
-  *				set_priority				     *
-  *===========================================================================*/
-int set_priority(int ntickets, struct schedproc* p)
-{
- 	int add;
 
- 	add = p->ticketsNum + ntickets > 100 ? 100 - p->ticketsNum : ntickets;
- 	add = p->ticketsNum + ntickets < 1 ? 1 - p->ticketsNum: add;
- 	p->ticketsNum += add;
- 	return add;
-}
 
 /*===========================================================================*
  *				do_noquantum				     *
@@ -260,7 +251,12 @@ int do_start_scheduling(message *m_ptr)
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;   //3.21 has this line, attention, this line is not the same as 3.17, it replace the function of rmp->nice
-	rmp->ticketsNum   = rmp->max_priority; //initial tickets a proc has, we set it to be the number of priority
+	rmp->ticketsNum   = rmp->max_priority+10;//actually we modified shcedule.c in pm so here MAXPRIO has number of nice instead of prio_queue,+10 to avoid negative ticketsNum
+	//(rmp->max_priority - USER_Q) * (PRIO_MAX-PRIO_MIN+1) / (MIN_USER_Q-MAX_USER_Q+1) + PRIO_MAX-PRIO_MIN+1;//give tickets
+	printf("Endpoint %s process has tickets: %d\n",rmp->endpoint,rmp->ticketsNum);
+	//initial tickets a proc has, we set it to be the number of priority
+	//after transfer ticketNum=nice, set max_prio to normal
+	rmp->max_priority = MAX_USER_Q + (rmp->ticketsNum-PRIO_MIN) * (MIN_USER_Q-MAX_USER_Q+1) / (PRIO_MAX-PRIO_MIN+1);
 
     if (rmp->max_priority >= NR_SCHED_QUEUES) {
 		return EINVAL;
@@ -392,7 +388,7 @@ int do_nice(message *m_ptr)
 	/* Update the proc entry and reschedule the process */
 
 	//rmp->max_priority = rmp->priority = new_q;
-    //the patch also comment some lines do not exist here
+
 
 	if ((rv = schedule_process_local(rmp)) != OK) {
 		/* Something went wrong when rescheduling the process, roll
