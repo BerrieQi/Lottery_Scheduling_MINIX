@@ -251,7 +251,7 @@ int do_start_scheduling(message *m_ptr)
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;   //3.21 has this line, attention, this line is not the same as 3.17, it replace the function of rmp->nice
-	rmp->ticketsNum   = rmp->max_priority+10;//actually we modified shcedule.c in pm so here MAXPRIO has number of nice instead of prio_queue,+10 to avoid negative ticketsNum
+	rmp->ticketsNum   = 40-rmp->max_priority;//actually we modified shcedule.c in pm so here MAXPRIO has number of nice instead of prio_queue, smaller nice has more tickets
 	//(rmp->max_priority - USER_Q) * (PRIO_MAX-PRIO_MIN+1) / (MIN_USER_Q-MAX_USER_Q+1) + PRIO_MAX-PRIO_MIN+1;//give tickets
 	printf("Endpoint %s process has tickets: %d\n",rmp->endpoint,rmp->ticketsNum);
 	//initial tickets a proc has, we set it to be the number of priority
