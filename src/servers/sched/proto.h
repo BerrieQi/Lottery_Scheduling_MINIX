@@ -13,8 +13,8 @@ int do_start_scheduling(message *m_ptr);
 int do_stop_scheduling(message *m_ptr);
 int do_nice(message *m_ptr);
 void init_scheduling(void);
-//Lottery Scheduling function
-int do_lottery(); 
+//Lottery Scheduling
+int do_lottery(); //declaring do_lottery function
 
 /* utility.c */
 int no_sys(int who_e, int call_nr);

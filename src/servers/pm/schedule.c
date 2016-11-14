@@ -103,9 +103,7 @@ int sched_nice(struct mproc *rmp, int nice)
 	}
 */
 	m.SCHEDULING_ENDPOINT	= rmp->mp_endpoint;
-	// change (unsigned) maxprio to nice, in order to transfer nice -n into sched/schedule.c
-	//message is used for communication, instead of transfer maxprio, we transfer nice 
-	m.SCHEDULING_MAXPRIO	= nice;
+	m.SCHEDULING_MAXPRIO	= nice;// change (int)maxprio to nice, in order to transfer nice -n into sched/schedule.c
 	if ((rv = _taskcall(rmp->mp_scheduler, SCHEDULING_SET_NICE, &m))) {
 		return rv;
 	}
