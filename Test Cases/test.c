@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-#define ROUND 100
-#define MAXN 30000000
+#define ROUND 10000
+#define MAXN 10000000
 
 int main (int argc, char* argv[]) {
     int i, j;
