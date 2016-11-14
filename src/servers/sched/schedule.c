@@ -165,13 +165,13 @@ int do_noquantum(message *m_ptr)
 	rmp = &schedproc[proc_nr_n];
 	//print cpu time
 	rmp->cputime += rmp->time_slice;
-	//printf("\nprocess id %u has cputime %ld\n", rmp->endpoint, rmp->cputime);
+	printf("\nprocess id %u has cputime %ld\n", rmp->endpoint, rmp->cputime);
 
 
     //add else condition
  	if (PROCESS_IN_USER_Q(rmp)) {
  		rmp->priority = USER_Q;
- 		//printf("\nProcess %d is executed whose ticket no is %d with time quantum %d with priority %d\n", rmp->endpoint, rmp->ticketsNum, rmp->time_slice, rmp->priority);
+ 		printf("\nProcess %d is executed whose ticket no is %d with time quantum %d with priority %d\n", rmp->endpoint, rmp->ticketsNum, rmp->time_slice, rmp->priority);
  	} else if (rmp->priority < MAX_USER_Q - 1)
     {
  		rmp->priority = rmp->priority + 1;//priority will go down
