@@ -171,15 +171,9 @@ int do_noquantum(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
-	//print cpu time
-	rmp->cputime += rmp->time_slice;
-	printf("\nprocess id %u has cputime %ld\n", rmp->endpoint, rmp->cputime);
-
-
     //add else condition
  	if (PROCESS_IN_USER_Q(rmp)) {
  		rmp->priority = USER_Q;
- 		printf("\nProcess %d is executed whose ticket no is %d with time quantum %d with priority %d\n", rmp->endpoint, rmp->ticketsNum, rmp->time_slice, rmp->priority);
  	} else if (rmp->priority < MAX_USER_Q - 1)
     {
  		rmp->priority = rmp->priority + 1;
@@ -257,13 +251,12 @@ int do_start_scheduling(message *m_ptr)
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;   //3.21 has this line, attention, this line is not the same as 3.17, it replace the function of rmp->nice
-	rmp->ticketsNum   = 5;//initial to 5 change in do nice
-	//actually we modified shcedule.c in pm so here MAXPRIO has number of nice instead of prio_queue, smaller nice has more tickets
+	rmp->ticketsNum   = 40-rmp->max_priority;//actually we modified shcedule.c in pm so here MAXPRIO has number of nice instead of prio_queue, smaller nice has more tickets
 	//(rmp->max_priority - USER_Q) * (PRIO_MAX-PRIO_MIN+1) / (MIN_USER_Q-MAX_USER_Q+1) + PRIO_MAX-PRIO_MIN+1;//give tickets
-	//printf("Endpoint %s process has tickets: %d\n",rmp->endpoint,rmp->ticketsNum);
+	printf("Endpoint %s process has tickets: %d\n",rmp->endpoint,rmp->ticketsNum);
 	//initial tickets a proc has, we set it to be the number of priority
 	//after transfer ticketNum=nice, set max_prio to normal
-	//rmp->max_priority = MAX_USER_Q + (rmp->ticketsNum-PRIO_MIN) * (MIN_USER_Q-MAX_USER_Q+1) / (PRIO_MAX-PRIO_MIN+1);
+	rmp->max_priority = MAX_USER_Q + (rmp->ticketsNum-PRIO_MIN) * (MIN_USER_Q-MAX_USER_Q+1) / (PRIO_MAX-PRIO_MIN+1);
 
     if (rmp->max_priority >= NR_SCHED_QUEUES) {
 		return EINVAL;
@@ -308,10 +301,10 @@ int do_start_scheduling(message *m_ptr)
 				&parent_nr_n)) != OK)
 			return rv;
 
-        //if (is_system_proc(rmp))
-		//    rmp->priority = schedproc[parent_nr_n].priority;
+        if (is_system_proc(rmp))
+		    rmp->priority = schedproc[parent_nr_n].priority;
         //set default priority of current process to be the middle of all new added priority queues
-        //    else
+            else
             rmp->priority = USER_Q;
 
 		rmp->time_slice = schedproc[parent_nr_n].time_slice;
@@ -366,7 +359,7 @@ int do_nice(message *m_ptr)
 	int rv;
 	int proc_nr_n;
 	unsigned new_q, old_q, old_max_q;
-    int old_ticketsNum;//old ticket num
+    int old_ticketsNum;
 
 	/* check who can send you requests */
 	if (!accept_message(m_ptr))
@@ -380,18 +373,12 @@ int do_nice(message *m_ptr)
 
 	rmp = &schedproc[proc_nr_n];
 	new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
-    //new_q now has nice value
-    //change ticket num
-	rmp->ticketsNum += new_q;
-	if(rmp->ticketsNum < 5)
-		rmp->ticketsNum = 5;
-	//new q is set tha same value as the old_priority 
-	new_q = rmp->priority;
-
+    //unsure should or not comment this if
+    /*
     if (new_q >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
-    
+    */
 	/* Store old values, in case we need to roll back the changes */
 	old_q     = rmp->priority;
 	old_max_q = rmp->max_priority;
@@ -401,7 +388,7 @@ int do_nice(message *m_ptr)
 	/* Update the proc entry and reschedule the process */
 
 	//rmp->max_priority = rmp->priority = new_q;
-    rmp->priority = USER_Q;// user q default priority of user proc
+
 
 	if ((rv = schedule_process_local(rmp)) != OK) {
 		/* Something went wrong when rescheduling the process, roll
