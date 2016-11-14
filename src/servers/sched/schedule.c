@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <minix/com.h>
 #include <machine/archtypes.h>
-//no idea include for what
+//include for printf
 #include <minix/syslib.h>
 //the .h for sef_receive_status
 #include <minix/sef.h>
@@ -96,60 +96,52 @@ static void pick_cpu(struct schedproc * proc)
 }
 
 /*==========================================================================*
-  *				do_lottery				     *
+  *		  do_lottery  refer:github.com/lastland/MINIX-3.1.7-Lottery-Scheduler*
   *===========================================================================*/
 int do_lottery()
 {
-    struct schedproc *rmp;
-	int proc_nr;
-	int rv;
-	int lucky;
- 	int old_priority;
+    struct schedproc *rmp;													//current proc
+	int proc_nr;															//total proc number
+	int rv,lucky,old_priority;
  	int flag = -1;
  	int nTickets = 0;
-
- 	for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
+	
+	rmp=schedproc;
+ 	for (proc_nr=0; proc_nr < NR_PROCS; proc_nr++) {
  		if ((rmp->flags & IN_USE) && PROCESS_IN_USER_Q(rmp)) {
  			if (USER_Q == rmp->priority) {
  				nTickets += rmp->ticketsNum;
  			}
  		}
+ 		rmp++;
  	}
 
- 	lucky = nTickets ? random() % nTickets : 0;
- 	for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
+ 	//draw tickets
+ 	if (nTickets)
+ 		lucky = random()%nTickets;
+ 	else
+ 		lucky = 0;
+ 	rmp=schedproc;
+ 	for (proc_nr=0; proc_nr < NR_PROCS; proc_nr++) {
  		if ((rmp->flags & IN_USE) && PROCESS_IN_USER_Q(rmp) &&
  				USER_Q == rmp->priority) {
  			old_priority = rmp->priority;
- 			/* rmp->priority = USER_Q; */
+ 			// rmp->priority = USER_Q; 
+ 			//if lucky < priority, this proc will be scheduled
  			if (lucky >= 0) {
- 				lucky -= rmp->ticketsNum;
- 				/*
- 				   printf("lucky - %d = %d\n", rmp->ticketsNum, lucky);
- 				 */
- 				if (lucky < 0) {
- 					rmp->priority = MAX_USER_Q;
+ 				if (lucky < rmp->ticketsNum) {
+ 					rmp->priority = MAX_USER_Q;//set proc to high priority to execute
  					flag = OK;
- 					/* printf("endpoint %d\n", rmp->endpoint); */
+ 					//printf("endpoint %d\n", rmp->endpoint); 
  				}
  			}
  			if (old_priority != rmp->priority) {
                 schedule_process_local(rmp);//if the priority is changed, then we need to call schedule_process to update the priority
  			}
  		}
+ 		rmp++;
  	}
- 	/*
- 	for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
- 		if ((rmp->flags & IN_USE) && PROCESS_IN_USER_Q(rmp)) {
- 			if (USER_Q == rmp->priority)
- 				count_17++;
- 			else if (MAX_USER_Q == rmp->priority)
- 				count_16++;
- 		}
- 	}
- 	printf("in 16: %d; in 17: %d\n", count_16, count_17);
- 	*/
- 	/* printf("do_lottery OK? %d lucky=%d\n", flag, lucky); */
+ 	//printf("do_lottery OK? %d lucky=%d\n", flag, lucky); 
  	return nTickets ? flag : OK;
 }
 
@@ -182,7 +174,7 @@ int do_noquantum(message *m_ptr)
  		//printf("\nProcess %d is executed whose ticket no is %d with time quantum %d with priority %d\n", rmp->endpoint, rmp->ticketsNum, rmp->time_slice, rmp->priority);
  	} else if (rmp->priority < MAX_USER_Q - 1)
     {
- 		rmp->priority = rmp->priority + 1;
+ 		rmp->priority = rmp->priority + 1;//priority will go down
  	}
 
 	if ((rv = schedule_process_local(rmp)) != OK) {
@@ -222,7 +214,6 @@ int do_stop_scheduling(message *m_ptr)
 	rmp->flags = 0; /*&= ~IN_USE;*/
 
     //call do_lottery after each scheduling
-    //why return do_lottery result, and why do_loterry return flag when success
     if ((rv = do_lottery()) != OK) {
         return rv;
     }
@@ -256,13 +247,14 @@ int do_start_scheduling(message *m_ptr)
 	/* Populate process slot */
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
-	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;   //3.21 has this line, attention, this line is not the same as 3.17, it replace the function of rmp->nice
-	rmp->ticketsNum   = 5;//initial to 5 change in do nice
+	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;   
+	rmp->ticketsNum   = 5;//initial to 5 tickets. 
 	//actually we modified shcedule.c in pm so here MAXPRIO has number of nice instead of prio_queue, smaller nice has more tickets
 	//(rmp->max_priority - USER_Q) * (PRIO_MAX-PRIO_MIN+1) / (MIN_USER_Q-MAX_USER_Q+1) + PRIO_MAX-PRIO_MIN+1;//give tickets
 	//printf("Endpoint %s process has tickets: %d\n",rmp->endpoint,rmp->ticketsNum);
 	//initial tickets a proc has, we set it to be the number of priority
 	//after transfer ticketNum=nice, set max_prio to normal
+
 	//rmp->max_priority = MAX_USER_Q + (rmp->ticketsNum-PRIO_MIN) * (MIN_USER_Q-MAX_USER_Q+1) / (PRIO_MAX-PRIO_MIN+1);
 
     if (rmp->max_priority >= NR_SCHED_QUEUES) {
@@ -312,6 +304,7 @@ int do_start_scheduling(message *m_ptr)
 		//    rmp->priority = schedproc[parent_nr_n].priority;
         //set default priority of current process to be the middle of all new added priority queues
         //    else
+        //set default to USER_Q
             rmp->priority = USER_Q;
 
 		rmp->time_slice = schedproc[parent_nr_n].time_slice;
@@ -379,6 +372,7 @@ int do_nice(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
+	//since we change scheduled.c in pm, here m_ptr->SCHEDULING_MAXPRIO is the 
 	new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
     //new_q now has nice value
     //change ticket num
@@ -466,7 +460,7 @@ void init_scheduling(void)
 	init_timer(&sched_timer);
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
 
-    //add the following
+    //add the following, read for r and initial rand seed
     read_tsc_64(&r);
     srandom();
 }

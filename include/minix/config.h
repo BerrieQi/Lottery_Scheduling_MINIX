@@ -69,6 +69,7 @@
  * priority) and increment.
  */
 //the following 3 lines are modified, 11/8/2016
+//add three new priority queue and new user process will stay in these queues
 #define NR_SCHED_QUEUES   19	/* MUST equal minimum priority + 1 */
 #define TASK_Q		   0	/* highest, used for kernel tasks */
 #define MAX_USER_Q  	   16    /* highest priority for user processes */
